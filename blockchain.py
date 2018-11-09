@@ -35,20 +35,36 @@ def get_last_blockchain_value():
 
 # version 2
 
+
+def verify_transaction(transaction):
+    sender_balance = get_balance(transaction['sender'])
+    if sender_balance >= transaction['amount']:
+        return True
+    else:
+        return False
+
+
 def get_balance(participant):
 
-    tx_sender = [[tx['amount'] for tx in block['transactions'] if tx['sender'] == participant] for block in blockchain]
+    tx_sender = [[tx['amount'] for tx in block['transactions']
+                  if tx['sender'] == participant] for block in blockchain]
+    print(tx_sender)
+    open_tx_sender = [tx['amount'] for tx in open_transactions if tx['sender'] == participant]
+    tx_sender.append(open_tx_sender)
     amount_sent = 0
     for tx in tx_sender:
         if len(tx) > 0:
-            amount_sent += tx[0]
+            for tx1 in tx:
+                amount_sent += tx1
 
-    tx_recipient = [[tx['amount'] for tx in block['transactions'] if tx['recipient'] == participant] for block in blockchain]
+    tx_recipient = [[tx['amount'] for tx in block['transactions']
+                     if tx['recipient'] == participant] for block in blockchain]
     amount_recieved = 0
     for tx in tx_recipient:
         if len(tx) > 0:
-            amount_recieved += tx[0]
+                amount_recieved += tx[0]
     return amount_recieved - amount_sent
+
 
 def add_transaction(recipient, amount=1.0, sender=owner):
     """ Append a new value as well as the last blockchain value to the blockchain
@@ -59,9 +75,13 @@ def add_transaction(recipient, amount=1.0, sender=owner):
         :amount: The amount sent by the sender to the recipient (default=1.0).
     """
     transaction = {'sender': sender, 'recipient': recipient, 'amount': amount}
-    open_transactions.append(transaction)
-    participants.add(sender)
-    participants.add(recipient)
+    if verify_transaction(transaction):
+        open_transactions.append(transaction)
+        participants.add(sender)
+        participants.add(recipient)
+        return True
+    else:
+        return False
 
 
 def mine_block():
@@ -163,9 +183,12 @@ while waiting_for_input:
         tx_data = get_transaction_value()
         recipient, amount = tx_data
         # add_transaction(tx_amount, get_last_blockchain_value())
-        add_transaction(recipient, amount=amount)
-        print(open_transactions)
-        print(blockchain)
+        if add_transaction(recipient, amount=amount):
+            print('Added transaction!')
+        else:
+            print('Transaction failed!')
+        #print(open_transactions)
+        #print(blockchain)
     elif user_choice == '2':
         if mine_block():
             open_transactions = []
@@ -177,7 +200,7 @@ while waiting_for_input:
         if len(blockchain) >= 1:
             blockchain[0] = {'previous_hash': '',
                              'index': 0,
-                             'transactions': [{'sender': 'Chris', 'recipient':'Harshil', 'amount': 100}]
+                             'transactions': [{'sender': 'Chris', 'recipient': 'Harshil', 'amount': 100}]
                              }
     elif user_choice == 'q':
         waiting_for_input = False
