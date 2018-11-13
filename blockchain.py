@@ -9,12 +9,12 @@ import hash_util
 # Initializing our blockchain list
 MINING_REWARD = 10
 
-genesis_block = {'previous_hash': '',
-                 'index': 0,
-                 'transactions': [],
-                 'proof': 100
-                 }
-blockchain = [genesis_block]
+# genesis_block = {'previous_hash': '',
+#                  'index': 0,
+#                  'transactions': [],
+#                  'proof': 100
+#                  }
+blockchain = [] # removed genesis block
 open_transactions = []
 owner = 'Harshil'
 participants = {'Harshil'}
@@ -148,42 +148,57 @@ def get_transaction_value():
 
 
 def load_data():
-    with open('blockchain.txt', mode='r') as f:
+    global blockchain
+    global open_transactions
+    try:
+        with open('blockchain.txt', mode='r') as f:
         #file_pickle = pickle.loads(f.read())
-        #print(file_pickle)
-        file_content = f.readlines()
-        global blockchain
-        global open_transactions
+        # print(file_pickle)
+            file_content = f.readlines()
+           
         # blockchain = file_pickle['chain']
         # open_transactions = file_pickle['ot']
-        blockchain = json.loads(file_content[0][:-1])
-        blockchain = [{'previous_hash': block['previous_hash'], 'index': block['index'], 'proof': block['proof'], 'transactions': [OrderedDict(
+            blockchain = json.loads(file_content[0][:-1])
+            blockchain = [{'previous_hash': block['previous_hash'], 'index': block['index'], 'proof': block['proof'], 'transactions': [OrderedDict(
             [('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])]) for tx in block['transactions']]} for block in blockchain]
-        open_transactions = json.loads(file_content[1])
-        updated_transactions = []
-        for tx in open_transactions:
-            updated_transactionn = OrderedDict(
+            open_transactions = json.loads(file_content[1])
+            updated_transactions = []
+            for tx in open_transactions:
+                 updated_transactionn = OrderedDict(
                 [('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])])
-            updated_transactions.append(updated_transactionn)
-        open_transactions = updated_transactions
+                 updated_transactions.append(updated_transactionn)
+            open_transactions = updated_transactions
 
+    except IOError:
+        genesis_block = {'previous_hash': '',
+                 'index': 0,
+                 'transactions': [],
+                 'proof': 100
+                 }
+        blockchain = [genesis_block]
+        open_transactions = []
+    finally:
+        print('Cleanup!')
 
 load_data()
 
 
 def save_data():
-    with open('blockchain.txt', mode='w') as f:
-        f.write(json.dumps(blockchain))
-        f.write('\n')
-        f.write(json.dumps(open_transactions))
-        # f.write(str(blockchain))
-        # f.write('\n')
-        # f.write(str(open_transactions))
-        # save_data = {
-        #     'chain': blockchain,
-        #     'ot': open_transactions
-        # }
-        # f.write(pickle.dumps(save_data))
+    try:
+        with open('blockchain.txt', mode='w') as f:
+            f.write(json.dumps(blockchain))
+            f.write('\n')
+            f.write(json.dumps(open_transactions))
+            # f.write(str(blockchain))
+            # f.write('\n')
+            # f.write(str(open_transactions))
+            # save_data = {
+            #     'chain': blockchain,
+            #     'ot': open_transactions
+            # }
+            # f.write(pickle.dumps(save_data))
+    except IOError:
+        print('Saving failed!')
 
 
 def get_user_choice():
