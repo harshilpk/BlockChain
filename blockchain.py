@@ -2,6 +2,7 @@ import functools
 import hashlib as hl
 import json
 from collections import OrderedDict
+import pickle
 
 import hash_util
 
@@ -17,9 +18,6 @@ blockchain = [genesis_block]
 open_transactions = []
 owner = 'Harshil'
 participants = {'Harshil'}
-
-
-
 
 
 def valid_proof(transactions, last_hash, proof):
@@ -102,11 +100,13 @@ def add_transaction(recipient, amount=1.0, sender=owner):
         :amount: The amount sent by the sender to the recipient (default=1.0).
     """
     # transaction = {'sender': sender, 'recipient': recipient, 'amount': amount}
-    transaction = OrderedDict([('sender',sender), ('recipient', recipient),('amount', amount)])
+    transaction = OrderedDict(
+        [('sender', sender), ('recipient', recipient), ('amount', amount)])
     if verify_transaction(transaction):
         open_transactions.append(transaction)
         participants.add(sender)
         participants.add(recipient)
+        save_data()
         return True
     else:
         return False
@@ -127,7 +127,8 @@ def mine_block():
     #     'recipient': owner,
     #     'amount': MINING_REWARD,
     # }
-    reward_transaction = OrderedDict([('sender', 'MINING'),('recipient', owner),('amount', MINING_REWARD)])
+    reward_transaction = OrderedDict(
+        [('sender', 'MINING'), ('recipient', owner), ('amount', MINING_REWARD)])
     copied_transaction = open_transactions[:]
     copied_transaction.append(reward_transaction)
     block = {'previous_hash': hashed_block,
@@ -144,6 +145,45 @@ def get_transaction_value():
     tx_recipient = input('Enter the recipient of the transaction:')
     tx_amount = float(input('Your transaction amount please: '))
     return (tx_recipient, tx_amount)
+
+
+def load_data():
+    with open('blockchain.txt', mode='r') as f:
+        #file_pickle = pickle.loads(f.read())
+        #print(file_pickle)
+        file_content = f.readlines()
+        global blockchain
+        global open_transactions
+        # blockchain = file_pickle['chain']
+        # open_transactions = file_pickle['ot']
+        blockchain = json.loads(file_content[0][:-1])
+        blockchain = [{'previous_hash': block['previous_hash'], 'index': block['index'], 'proof': block['proof'], 'transactions': [OrderedDict(
+            [('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])]) for tx in block['transactions']]} for block in blockchain]
+        open_transactions = json.loads(file_content[1])
+        updated_transactions = []
+        for tx in open_transactions:
+            updated_transactionn = OrderedDict(
+                [('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])])
+            updated_transactions.append(updated_transactionn)
+        open_transactions = updated_transactions
+
+
+load_data()
+
+
+def save_data():
+    with open('blockchain.txt', mode='w') as f:
+        f.write(json.dumps(blockchain))
+        f.write('\n')
+        f.write(json.dumps(open_transactions))
+        # f.write(str(blockchain))
+        # f.write('\n')
+        # f.write(str(open_transactions))
+        # save_data = {
+        #     'chain': blockchain,
+        #     'ot': open_transactions
+        # }
+        # f.write(pickle.dumps(save_data))
 
 
 def get_user_choice():
@@ -239,6 +279,7 @@ while waiting_for_input:
     elif user_choice == '2':
         if mine_block():
             open_transactions = []
+            save_data()
     elif user_choice == '3':
         print_blockchain_elements()
     elif user_choice == '4':
