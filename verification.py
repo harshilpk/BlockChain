@@ -30,10 +30,10 @@ class Verification:
     #         break
     #     block_index += 1
     # version 3
-        for (index, block) in enumerate(blockchain.chain):
+        for (index, block) in enumerate(blockchain):
             if index == 0:
                 continue
-            if block.previous_hash != hash_util.hash_block(blockchain.chain[index - 1]):
+            if block.previous_hash != hash_util.hash_block(blockchain[index - 1]):
                 return False
             if not cls.valid_proof(block.transactions[:-1], block.previous_hash, block.proof):
                 return False

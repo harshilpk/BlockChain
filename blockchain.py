@@ -17,9 +17,23 @@ class Blockchain:
     def __init__(self, hosting_node_id):
         genesis_block = Block(0, '', [], 100, 0)
         self.chain = [genesis_block]
-        self.open_transactions = []
+        self.__open_transactions = []
         self.load_data()
         self.hosting_node = hosting_node_id
+
+    @property
+    def chain(self):
+        return self.__chain[:]
+
+    @chain.setter
+    def chain(self, val):
+        self.__chain = val
+
+    # def get_chain(self):
+    #     return self.__chain[:]
+
+    def get_open_transactions(self):
+        return self.__open_transactions[:]
 
 
 # genesis_block = {'previous_hash': '',
@@ -33,19 +47,19 @@ class Blockchain:
     participants = {'Harshil'}
 
     def proof_of_work(self):
-        last_block = self.chain[-1]
+        last_block = self.__chain[-1]
         last_hash = hash_util.hash_block(last_block)
         proof = 0
         # verifier = Verification()
-        while not Verification.valid_proof(self.open_transactions, last_hash, proof):
+        while not Verification.valid_proof(self.__open_transactions, last_hash, proof):
             proof += 1
         return proof
 
     def get_last_blockchain_value(self):
         """ Returns the last value of the current blockchain """
-        if len(self.chain) < 1:
+        if len(self.__chain) < 1:
             return None
-        return self.chain[-1]
+        return self.__chain[-1]
 
     # version 1
     # def add_transaction(transaction_amount, last_trasaction=[1]):
@@ -66,10 +80,10 @@ class Blockchain:
         participant = self.hosting_node
 
         tx_sender = [[tx.amount for tx in block.transactions
-                      if tx.sender == participant] for block in self.chain]
+                      if tx.sender == participant] for block in self.__chain]
         print(tx_sender)
         open_tx_sender = [tx.amount
-                          for tx in self.open_transactions if tx.sender == participant]
+                          for tx in self.__open_transactions if tx.sender == participant]
         tx_sender.append(open_tx_sender)
         amount_sent = functools.reduce(
             lambda tx_sum, tx_amt: tx_sum + sum(tx_amt) if len(tx_amt) > 0 else tx_sum + 0, tx_sender, 0)
@@ -79,7 +93,7 @@ class Blockchain:
         #         amount_sent += tx[0]
 
         tx_recipient = [[tx.amount for tx in block.transactions
-                         if tx.recipient == participant] for block in self.chain]
+                         if tx.recipient == participant] for block in self.__chain]
         amount_recieved = functools.reduce(lambda tx_sum, tx_amt: tx_sum + sum(
             tx_amt) if len(tx_amt) > 0 else tx_sum + 0, tx_recipient, 0)
         # amount_recieved = 0
@@ -102,7 +116,7 @@ class Blockchain:
         # [('sender', sender), ('recipient', recipient), ('amount', amount)])
         # verifier = Verification()
         if Verification.verify_transaction(transaction, self.get_balance):
-            self.open_transactions.append(transaction)
+            self.__open_transactions.append(transaction)
             self.participants.add(sender)
             self.participants.add(recipient)
             self.save_data()
@@ -111,7 +125,7 @@ class Blockchain:
             return False
 
     def mine_block(self):
-        last_block = self.chain[-1]
+        last_block = self.__chain[-1]
         # hashed_block = ''
         hashed_block = hash_util.hash_block(last_block)
         # print(hashed_block)
@@ -128,17 +142,17 @@ class Blockchain:
         reward_transaction = Transaction('MINING', self.hosting_node, MINING_REWARD)
         # reward_transaction = OrderedDict(
         #   [('sender', 'MINING'), ('recipient', owner), ('amount', MINING_REWARD)])
-        copied_transactions = self.open_transactions[:]
+        copied_transactions = self.__open_transactions[:]
         copied_transactions.append(reward_transaction)
-        block = Block(len(self.chain), hashed_block,
+        block = Block(len(self.__chain), hashed_block,
                       copied_transactions, proof)
         # block = {'previous_hash': hashed_block,
         #          'index': len(blockchain),
         #          'transactions': copied_transaction,
         #          'proof': proof
         #          }
-        self.chain.append(block)
-        self.open_transactions = []
+        self.__chain.append(block)
+        self.__open_transactions = []
         self.save_data()
         return True
 
@@ -179,7 +193,7 @@ class Blockchain:
                     # updated_transactionn = OrderedDict(
                     # [('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])])
                     updated_transactions.append(updated_transaction)
-                self.open_transactions = updated_transactions
+                self.__open_transactions = updated_transactions
 
         except (IOError, IndexError):
             print('Handled exception...')
@@ -197,10 +211,10 @@ class Blockchain:
         try:
             with open('blockchain.txt', mode='w') as f:
                 savable_chain = [block.__dict__ for block in [Block(block_el.index, block_el.previous_hash, [
-                                                                    tx.__dict__ for tx in block_el.transactions], block_el.proof, block_el.timestamp) for block_el in self.chain]]
+                                                                    tx.__dict__ for tx in block_el.transactions], block_el.proof, block_el.timestamp) for block_el in self.__chain]]
                 f.write(json.dumps(savable_chain))
                 f.write('\n')
-                savable_tx = [tx.__dict__ for tx in self.open_transactions]
+                savable_tx = [tx.__dict__ for tx in self.__open_transactions]
                 f.write(json.dumps(savable_tx))
                 # f.write(str(blockchain))
                 # f.write('\n')
