@@ -4,10 +4,12 @@ import json
 
 import pickle
 
-import hash_util
+from utility.hash_util import hash_block
+from utility.verification import Verification
 from block import Block
 from transaction import Transaction
-from verification import Verification
+from wallet import Wallet
+# from verification import Verification
 
 # Initializing our blockchain list
 MINING_REWARD = 10
@@ -48,7 +50,7 @@ class Blockchain:
 
     def proof_of_work(self):
         last_block = self.__chain[-1]
-        last_hash = hash_util.hash_block(last_block)
+        last_hash = hash_block(last_block)
         proof = 0
         # verifier = Verification()
         while not Verification.valid_proof(self.__open_transactions, last_hash, proof):
@@ -102,7 +104,7 @@ class Blockchain:
         #         amount_recieved += tx[0]
         return amount_recieved - amount_sent
 
-    def add_transaction(self, recipient, sender, amount=1.0):
+    def add_transaction(self, recipient, sender, signature, amount=1.0):
         """ Append a new value as well as the last blockchain value to the blockchain
 
         Arguments:
@@ -110,11 +112,15 @@ class Blockchain:
             :recipient: The recipient of the coins.
             :amount: The amount sent by the sender to the recipient (default=1.0).
         """
+        if self.hosting_node == None:
+            return False
         # transaction = {'sender': sender, 'recipient': recipient, 'amount': amount}
-        transaction = Transaction(sender, recipient, amount)
+        transaction = Transaction(sender, recipient, signature, amount)
         # transaction = OrderedDict(
         # [('sender', sender), ('recipient', recipient), ('amount', amount)])
         # verifier = Verification()
+        # if not Wallet.verify_transaction(transaction):
+        #     return False  #removed code redundancy
         if Verification.verify_transaction(transaction, self.get_balance):
             self.__open_transactions.append(transaction)
             self.participants.add(sender)
@@ -125,9 +131,11 @@ class Blockchain:
             return False
 
     def mine_block(self):
+        if self.hosting_node == None:
+            return False
         last_block = self.__chain[-1]
         # hashed_block = ''
-        hashed_block = hash_util.hash_block(last_block)
+        hashed_block = hash_block(last_block)
         # print(hashed_block)
         # for key in last_block:
         #     value = last_block[key]
@@ -139,10 +147,13 @@ class Blockchain:
         #     'recipient': owner,
         #     'amount': MINING_REWARD,
         # }
-        reward_transaction = Transaction('MINING', self.hosting_node, MINING_REWARD)
+        reward_transaction = Transaction('MINING', self.hosting_node, '', MINING_REWARD)
         # reward_transaction = OrderedDict(
         #   [('sender', 'MINING'), ('recipient', owner), ('amount', MINING_REWARD)])
         copied_transactions = self.__open_transactions[:]
+        for tx in copied_transactions:
+            if not Wallet.verify_transaction(tx):
+                return False
         copied_transactions.append(reward_transaction)
         block = Block(len(self.__chain), hashed_block,
                       copied_transactions, proof)
@@ -173,7 +184,7 @@ class Blockchain:
                 updated_blockchain = []
                 for block in blockchain:
                     converted_tx = [Transaction(
-                        tx['sender'], tx['recipient'], tx['amount']) for tx in block['transactions']]
+                        tx['sender'], tx['recipient'], tx['signature'], tx['amount']) for tx in block['transactions']]
                     # converted_tx = [OrderedDict([('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])]) for tx in block['transactions']]
                     updated_block = Block(
                         block['index'], block['previous_hash'], converted_tx, block['proof'], block['timestamp'])
@@ -189,7 +200,7 @@ class Blockchain:
                 updated_transactions = []
                 for tx in open_transactions:
                     updated_transaction = Transaction(
-                        tx['sender'], tx['recipient'], tx['amount'])
+                        tx['sender'], tx['recipient'], tx['signature'] , tx['amount'])
                     # updated_transactionn = OrderedDict(
                     # [('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])])
                     updated_transactions.append(updated_transaction)

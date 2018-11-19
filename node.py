@@ -1,14 +1,19 @@
 from uuid import uuid4
 
 from blockchain import Blockchain
-from verification import Verification
+from utility.verification import Verification
+from wallet import Wallet
 
 class Node:
 
     def __init__(self):
         #self.id = str(uuid4())
-        self.id = "HARSHIL"
-        self.blockchain = Blockchain(self.id)
+        # self.id = "HARSHIL"
+        self.wallet = Wallet()
+        # self.blockchain = Blockchain(self.wallet.public_key)
+        # self.blockchain = None
+        self.wallet.create_keys()
+        self.blockchain = Blockchain(self.wallet.public_key)
         
 
     def listen_for_input(self):
@@ -21,6 +26,9 @@ class Node:
             print('3: Output the blockchain blocks')
             print("4: Output participants")
             print("5: Check transaction validity")
+            print('6: Create wallet')
+            print('7: Load wallet')
+            print('8: Save keys')
             #print('h: Manipulate the chain')
             print('q: Quit')
 
@@ -29,14 +37,16 @@ class Node:
                 tx_data = self.get_transaction_value()
                 recipient, amount = tx_data
                 # add_transaction(tx_amount, get_last_blockchain_value())
-                if self.blockchain.add_transaction(recipient, self.id, amount=amount):
+                signature = self.wallet.sign_transaction(self.wallet.public_key, recipient, amount)
+                if self.blockchain.add_transaction(recipient, self.wallet.public_key, signature, amount=amount):
                     print('Added transaction!')
                 else:
                     print('Transaction failed!')
                 print(self.blockchain.get_open_transactions())
                 # print(blockchain)
             elif user_choice == '2':
-                self.blockchain.mine_block()
+                if not self.blockchain.mine_block():
+                    print('Mining failed. Got no wallet?')
             elif user_choice == '3':
                 self.print_blockchain_elements()
             elif user_choice == '4':
@@ -53,6 +63,14 @@ class Node:
             #                          'index': 0,
             #                          'transactions': [{'sender': 'Chris', 'recipient': 'Harshil', 'amount': 100}]
             #                          }
+            elif user_choice == '6':
+                self.wallet.create_keys()
+                self.blockchain = Blockchain(self.wallet.public_key)
+            elif user_choice == '7':
+                self.wallet.load_keys()
+                self.blockchain = Blockchain(self.wallet.public_key)
+            elif user_choice == '8':
+               self.wallet.save_keys()
             elif user_choice == 'q':
                 waiting_for_input = False
             else:
@@ -63,7 +81,7 @@ class Node:
                 print('Invalid blockchain!')
                 break
             print('Balance of {}: {:6.2f}'.format(
-                self.id, self.blockchain.get_balance()))
+                self.wallet.public_key, self.blockchain.get_balance()))
 
         else:
             print('User left!')
@@ -87,6 +105,9 @@ class Node:
         tx_amount = float(input('Your transaction amount please: '))
         return (tx_recipient, tx_amount)
 
-node = Node()
 
-node.listen_for_input()
+if __name__ == '__main__':
+    node = Node()
+
+    node.listen_for_input()
+
