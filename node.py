@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 
 from wallet import Wallet
@@ -8,6 +8,11 @@ app = Flask(__name__)
 wallet = Wallet()
 blockchain = Blockchain(wallet.public_key)
 CORS(app)
+
+
+@app.route('/', methods=['GET'])
+def get_ui():
+    return send_from_directory('ui', 'node.html')
 
 
 @app.route('/wallet', methods=['POST'])
@@ -46,6 +51,7 @@ def load_keys():
         }
         return jsonify(response), 500
 
+
 @app.route('/balance', methods=['GET'])
 def get_balance():
     balance = blockchain.get_balance()
@@ -62,9 +68,6 @@ def get_balance():
         }
         return jsonify(response), 500
 
-@app.route('/', methods=['GET'])
-def get_ui():
-    return 'This works!'
 
 @app.route('/transaction', methods=['POST'])
 def add_transaction():
@@ -88,7 +91,8 @@ def add_transaction():
     recipient = values['recipient']
     amount = values['amount']
     signature = wallet.sign_transaction(wallet.public_key, recipient, amount)
-    success = blockchain.add_transaction(recipient, wallet.public_key, signature, amount)
+    success = blockchain.add_transaction(
+        recipient, wallet.public_key, signature, amount)
     if success:
         response = {
             'message': 'Successfully added transaction.',
@@ -106,6 +110,7 @@ def add_transaction():
             'message': 'Creating a transaction failed.'
         }
         return jsonify(response), 500
+
 
 @app.route('/mine', methods=['POST'])
 def mine():
@@ -137,11 +142,13 @@ def get_chain():
             tx.__dict__ for tx in dict_block['transactions']]
     return jsonify(dict_chain), 200
 
+
 @app.route('/transactions', methods=['GET'])
 def get_open_transaction():
     transactions = blockchain.get_open_transactions()
     dict_transactions = [tx.__dict__ for tx in transactions]
     return jsonify(dict_transactions), 200
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
