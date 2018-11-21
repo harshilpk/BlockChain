@@ -79,6 +79,8 @@ class Blockchain:
 
     def get_balance(self):
 
+        if self.hosting_node == None:
+            return None
         participant = self.hosting_node
 
         tx_sender = [[tx.amount for tx in block.transactions
@@ -132,7 +134,8 @@ class Blockchain:
 
     def mine_block(self):
         if self.hosting_node == None:
-            return False
+            # return False #Http changes
+            return None
         last_block = self.__chain[-1]
         # hashed_block = ''
         hashed_block = hash_block(last_block)
@@ -153,7 +156,8 @@ class Blockchain:
         copied_transactions = self.__open_transactions[:]
         for tx in copied_transactions:
             if not Wallet.verify_transaction(tx):
-                return False
+                # return False #Http changes
+                return None
         copied_transactions.append(reward_transaction)
         block = Block(len(self.__chain), hashed_block,
                       copied_transactions, proof)
@@ -165,7 +169,8 @@ class Blockchain:
         self.__chain.append(block)
         self.__open_transactions = []
         self.save_data()
-        return True
+        # return True #Http changes
+        return block
 
     def load_data(self):
         # global blockchain
